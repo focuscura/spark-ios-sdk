@@ -94,7 +94,11 @@ class AuthManager {
         
         return true
     }
-    
+
+    func getAccessToken() -> String? {
+        return self.accessToken?.accessTokenString ?? nil
+    }
+
     func getAuthorization() -> [String: String]? {
         guard refreshAccessTokenWithExpirationBuffer(AccessTokenExpirationBufferInMinutes) else {
             return nil
