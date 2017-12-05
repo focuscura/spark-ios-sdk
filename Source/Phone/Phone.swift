@@ -115,7 +115,7 @@ public class Phone {
     let queue = SerialQueue()
     let metrics: MetricsEngine
     
-    private let devices: DeviceService    
+    private let devices: DeviceService
     private let webSocket: WebSocketService
     private var calls = [String: Call]()
     private var mediaContext: MediaSessionWrapper?
@@ -153,7 +153,7 @@ public class Phone {
             }
         }
     }
-
+    
     init(authenticator: Authenticator,devices:DeviceService,reachability:ReachabilityService,client:CallClient,conversations:ConversationClient,metrics:MetricsEngine,prompter:H264LicensePrompter,webSocket:WebSocketService) {
         let _ = MediaEngineWrapper.sharedInstance.WMEVersion
         self.authenticator = authenticator
@@ -171,7 +171,7 @@ public class Phone {
         self.webSocket.onCallModel = { [weak self] model in
             if let strong = self {
                 strong.queue.underlying.async {
-                strong.doLocusEvent(model);
+                    strong.doLocusEvent(model);
                 }
             }
         }
@@ -724,6 +724,8 @@ public class Phone {
         self.stopObserving();
         NotificationCenter.default.addObserver(self, selector: #selector(self.onApplicationDidBecomeActive) , name: .UIApplicationDidBecomeActive, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(self.onApplicationDidEnterBackground) , name: .UIApplicationDidEnterBackground, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.onIncomingCallInBackground) , name: .incomingCallInBackground, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.onDeclinedCallInBackground) , name: .declinedCallInBackground, object: nil)
     }
     
     private func stopObserving() {
@@ -733,6 +735,15 @@ public class Phone {
     
     @objc func onApplicationDidBecomeActive() {
         SDKLogger.shared.info("Application did become active")
+        connectToWebSocket()
+    }
+    
+    @objc func onIncomingCallInBackground() {
+        SDKLogger.shared.info("Application has an incoming call in background ")
+        connectToWebSocket()
+    }
+    
+    private func connectToWebSocket() {
         if let device = self.devices.device {
             self.webSocket.connect(device.webSocketUrl) { [weak self] error in
                 if let error = error {
@@ -747,6 +758,15 @@ public class Phone {
     
     @objc func onApplicationDidEnterBackground() {
         SDKLogger.shared.info("Application did enter background")
+        disconnectFromWebSocket()
+    }
+    
+    @objc func onDeclinedCallInBackground() {
+        SDKLogger.shared.info("Application has a declined call in background ")
+        disconnectFromWebSocket()
+    }
+    
+    private func disconnectFromWebSocket() {
         self.webSocket.disconnect();
     }
     
@@ -767,4 +787,18 @@ public class Phone {
             
         }
     }
+}
+
+extension Notification.Name {
+    /// A notification name for an incoming call in background.
+    static let incomingCallInBackground = Notification.Name("Cisco.SparkSDK.incomingCallInBackground")
+    /// A notification name for a declined call in background.
+    static let declinedCallInBackground = Notification.Name("Cisco.SparkSDK.declinedCallInBackground")
+}
+
+extension NSNotification {
+    /// Objective-C version of a notification name for an incoming call in background.
+    public static let incomingCallInBackground: NSString = Notification.Name.incomingCallInBackground.rawValue as NSString
+    /// Objective-C version of a notification name for a declined call in background.
+    public static let declinedCallInBackground: NSString = Notification.Name.declinedCallInBackground.rawValue as NSString
 }
