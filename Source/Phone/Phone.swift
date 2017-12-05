@@ -258,7 +258,7 @@ public class Phone {
             }
         }
     }
-        
+    
     /// Makes a call to an intended recipient on behalf of the authenticated user.
     /// It supports the following address formats for the receipient:
     ///
@@ -831,6 +831,8 @@ public class Phone {
         self.stopObserving();
         NotificationCenter.default.addObserver(self, selector: #selector(self.onApplicationDidBecomeActive) , name: .UIApplicationDidBecomeActive, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(self.onApplicationDidEnterBackground) , name: .UIApplicationDidEnterBackground, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.onIncomingCallInBackground) , name: .incomingCallInBackground, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.onDeclinedCallInBackground) , name: .declinedCallInBackground, object: nil)
     }
     
     private func stopObserving() {
@@ -846,6 +848,16 @@ public class Phone {
     @objc func onApplicationDidEnterBackground() {
         SDKLogger.shared.info("Application did enter background")
         self.disconnectFromWebSocket()
+    }
+
+    @objc func onIncomingCallInBackground() {
+        SDKLogger.shared.info("Application has an incoming call in background ")
+        connectToWebSocket()
+    }
+
+    @objc func onDeclinedCallInBackground() {
+        SDKLogger.shared.info("Application has a declined call in background ")
+        disconnectFromWebSocket()
     }
     
     private func connectToWebSocket() {
@@ -896,5 +908,19 @@ public class Phone {
         }
         
     }
-    
+
+}
+
+extension Notification.Name {
+    /// A notification name for an incoming call in background.
+    public static let incomingCallInBackground = Notification.Name("Cisco.SparkSDK.incomingCallInBackground")
+    /// A notification name for a declined call in background.
+    public static let declinedCallInBackground = Notification.Name("Cisco.SparkSDK.declinedCallInBackground")
+}
+
+extension NSNotification {
+    /// Objective-C version of a notification name for an incoming call in background.
+    public static let incomingCallInBackground: NSString = Notification.Name.incomingCallInBackground.rawValue as NSString
+    /// Objective-C version of a notification name for a declined call in background.
+    public static let declinedCallInBackground: NSString = Notification.Name.declinedCallInBackground.rawValue as NSString
 }
